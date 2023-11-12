@@ -1,0 +1,182 @@
+version: '3'
+
+services:
+    nuoadmin1:
+        image: nuodb/nuodb-ce:latest
+        environment:
+            NUODB_DOMAIN_ENTRYPOINT: nuoadmin1
+        hostname: nuoadmin1
+        volumes:
+            - ../imdb_data:/opt/nuodb/imdb/sql
+        ports:
+            - "8888:8888"
+        command: ["nuoadmin"]
+
+    nuoadmin2:
+        image: nuodb/nuodb-ce:latest
+        environment:
+            NUODB_DOMAIN_ENTRYPOINT: nuoadmin1
+        hostname: nuoadmin2
+        volumes:
+            - ../imdb_data:/opt/nuodb/imdb/sql
+        ports:
+            - "8889:8888"
+        command: ["nuoadmin"]
+
+    nuoadmin3:
+        image: nuodb/nuodb-ce:latest
+        environment:
+            NUODB_DOMAIN_ENTRYPOINT: nuoadmin1
+        hostname: nuoadmin3
+        volumes:
+            - ../imdb_data:/opt/nuodb/imdb/sql
+        ports:
+            - "8890:8888"
+        command: ["nuoadmin"]
+
+    sm:
+        image: nuodb/nuodb-ce:latest
+        hostname: sm
+        environment:
+            NUOCMD_API_SERVER: nuoadmin1:8888
+        depends_on:
+            - nuoadmin1
+            - nuoadmin2
+            - nuoadmin3
+        command: ["nuodocker", "start", "sm", "--db-name", "test", "--server-id", "nuoadmin1", "--dba-user", "dba", "--dba-password", "goalie"]
+
+    te1:
+        image: nuodb/nuodb-ce:latest
+        hostname: te1
+        environment:
+            NUOCMD_API_SERVER: nuoadmin1:8888
+        depends_on:
+            - nuoadmin1
+            - nuoadmin2
+            - nuoadmin3
+            - sm
+        ports:
+            - "48006:48006"
+        command: ["nuodocker", "start", "te", "--db-name", "test", "--server-id", "nuoadmin1"]
+
+    te2:
+        image: nuodb/nuodb-ce:latest
+        hostname: te2
+        environment:
+            NUOCMD_API_SERVER: nuoadmin1:8888
+        depends_on:
+            - nuoadmin1
+            - nuoadmin2
+            - nuoadmin3
+            - sm
+        ports:
+            - "48007:48006"
+        command: ["nuodocker", "start", "te", "--db-name", "test", "--server-id", "nuoadmin1"]
+
+    te3:
+        image: nuodb/nuodb-ce:latest
+        hostname: te3
+        environment:
+            NUOCMD_API_SERVER: nuoadmin1:8888
+        depends_on:
+            - nuoadmin1
+            - nuoadmin2
+            - nuoadmin3
+            - sm
+        ports:
+            - "48008:48006"
+        command: ["nuodocker", "start", "te", "--db-name", "test", "--server-id", "nuoadmin1"]
+
+    influxdb:
+        image: influxdb:1.8
+        ports:
+            - "8086:8086"
+        volumes:
+            - ../deploy/initdb.sh:/docker-entrypoint-initdb.d/initdb.sh
+
+    nuocd-sm:
+        image: nuodb/nuodb-collector:latest
+        depends_on:
+            - nuoadmin1
+            - sm
+            - influxdb
+        environment:
+            INFLUXURL: http://influxdb:8086
+            NUOCMD_API_SERVER: nuoadmin1:8888
+            NUOCD_HOSTNAME: sm
+        pid: 'service:sm'
+
+    nuocd-te1:
+        image: nuodb/nuodb-collector:latest
+        depends_on:
+            - nuoadmin1
+            - sm
+            - influxdb
+            - te1
+        environment:
+            INFLUXURL: http://influxdb:8086
+            NUOCMD_API_SERVER: nuoadmin1:8888
+            NUOCD_HOSTNAME: te1
+        pid: 'service:te1'
+
+    nuocd-te2:
+        image: nuodb/nuodb-collector:latest
+        depends_on:
+            - nuoadmin1
+            - sm
+            - influxdb
+            - te2
+        environment:
+            INFLUXURL: http://influxdb:8086
+            NUOCMD_API_SERVER: nuoadmin1:8888
+            NUOCD_HOSTNAME: te2
+        pid: 'service:te2'
+
+    nuocd-te3:
+        image: nuodb/nuodb-collector:latest
+        depends_on:
+            - nuoadmin1
+            - sm
+            - influxdb
+            - te3
+        environment:
+            INFLUXURL: http://influxdb:8086
+            NUOCMD_API_SERVER: nuoadmin1:8888
+            NUOCD_HOSTNAME: te3
+        pid: 'service:te3'
+
+    grafana:
+        image: grafana/grafana:7.5.4
+        depends_on:
+            - influxdb
+        environment:
+            - INFLUX_HOST=influxdb
+        volumes:
+            - ../conf/provisioning:/etc/grafana/provisioning
+        ports:
+            - "3000:3000"
+
+    ycsb-demo:
+        image: nuodb/ycsb:latest
+        depends_on:
+            - te1
+            - te2
+            - te3
+            - nuoadmin1
+        environment:
+            PEER_ADDRESS: nuoadmin1
+            DB_NAME: test
+            DB_USER: dba
+            DB_PASSWORD: goalie
+        command: ["/driver/startup.sh"]
+
+    flask-app:
+        build: ..
+        depends_on:
+            - te1
+            - te2
+            - te3
+            - sm
+            - nuoadmin1
+        ports:
+            - "5000:5000"

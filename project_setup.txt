@@ -1,0 +1,79 @@
+---------------------------- Install Software ----------------------------
+Install Docker Desktop and DBVisualizer:
+    https://docs.docker.com/get-docker/
+    https://www.dbvis.com/download/
+
+
+---------------------------- Create Docker Containers ----------------------------
+Clone our CSC244 repo:
+    git clone https://github.com/Christin-coder/CSC244.git
+
+    Convert deploy/initdb.sh to Unix-style line endings (LF) using Notepad++:
+        https://support.nesi.org.nz/hc/en-gb/articles/218032857-Converting-from-Windows-style-to-UNIX-style-line-endings
+
+    Verify conversion in Linux CLI (can use Git Bash):
+        The command "file initdb.sh" returns "initdb.sh: Bourne-Again shell script, ASCII text executable"
+
+Download IMDB SQL files:
+    https://drive.google.com/file/d/1hwQleIbPsWLYcFPCEz_k9Rj4SO83e0qp/view
+
+    Unzip the folder, rename it to imdb_data, and add it into the CSC 244 Repo
+
+Run docker compose setup file in CSC244 repo:
+    docker-compose -f deploy/docker-compose.yaml up -d
+
+
+---------------------------- Access NuoDB Insights ----------------------------
+Go to localhost:3000 in browser
+Username is admin
+Password is admin
+Skip New Password screen
+Hover over Dashboards Icon (4 squares) in Side Menu and click on "Manage"
+Click on "nuodb" folder
+Click on "NuoDB Ops System Overview"
+
+
+---------------------------- Load IMDB Dataset ----------------------------
+Load IMDB SQL files into NuoDB database (this will take a couple minutes per file):
+    Run the following commands in the nuoadmin1 docker container:
+        nuosql test@nuoadmin1 --schema imdb --user dba --password goalie </opt/nuodb/imdb/sql/directors.sql >& /dev/null
+        nuosql test@nuoadmin1 --schema imdb --user dba --password goalie </opt/nuodb/imdb/sql/movies.sql >& /dev/null
+        nuosql test@nuoadmin1 --schema imdb --user dba --password goalie </opt/nuodb/imdb/sql/actors.sql >& /dev/null
+        nuosql test@nuoadmin1 --schema imdb --user dba --password goalie </opt/nuodb/imdb/sql/directors_genres.sql >& /dev/null
+        nuosql test@nuoadmin1 --schema imdb --user dba --password goalie </opt/nuodb/imdb/sql/movies_genres.sql >& /dev/null
+        nuosql test@nuoadmin1 --schema imdb --user dba --password goalie </opt/nuodb/imdb/sql/movies_directors.sql >& /dev/null
+        nuosql test@nuoadmin1 --schema imdb --user dba --password goalie </opt/nuodb/imdb/sql/roles.sql >& /dev/null
+
+Access NuoDB CLI using nuoadmin1 docker container:
+    nuosql test@nuoadmin1 --user dba --password goalie
+        USE imdb;
+        SHOW tables;
+        exit
+
+
+---------------------------- Setup DBVisualizer ----------------------------
+Open DBVisualizer
+Click "Create a Database Connection"
+Click "Create a Connection"
+Select "NuoDB"
+For the Name, Enter "NuoDB-test"
+For Database Server, Enter "localhost"
+For Database Port, Enter "48006"
+For Database, Enter "test"
+For Database Userid, Enter "dba"
+For Database Password, Enter "goalie"
+Click "Ping Server"
+Click "Connect"
+Click "Properties"
+Click "Driver Properties"
+Click "+" to create new Driver
+Enter "direct" for Parameter and "true" for Value
+Click "Apply"
+Right Click "NuoDB-test" and select "Reconnect"
+Expand NuoDB-test to see details of Database
+Click on SQL Commander Icon (Triangle with Plus) to open SQL file and run commands:
+    Make sure to have "NuoDB-test" set as the Database Connection and "IMDB" set as the Schema.
+
+
+---------------------------- Access Flask App ----------------------------
+Go to localhost:5000 in browser
