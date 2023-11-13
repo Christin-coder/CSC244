@@ -12,32 +12,53 @@
 </head>
 
 <body>
-    <div class="container">
+    <div class="container" style="width: 80vw;">
         <div class="d-flex justify-content-between align-items-center px-5 py-3">
             <h1>{{ table_name }}</h1>
             <a class="btn btn-primary" href="/" role="button">Home</a>
         </div>
         <div>
-            <button class="btn btn-primary" id="insertBtn" onclick="insertRows()">Insert Rows</button>
+            <table id="searchAndInsertButton" class="table">
+                <tr>
+                    <td>
+                        <button class="btn btn-primary" id="insertBtn" onclick="insertRows()">Insert Rows</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-primary" id="searchRowBtn" onclick="searchRows()">Search</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-primary" id="deleteRowBtn" onclick="deleteRows()">Delete a Row</button>
+                    </td>
+                </tr>
+            </table>
         </div>
-        <table id="example" class="table table-striped" style="width:100%">
-            <thead>
-                <tr>
-                    {% for column in columns %}
-                    <th>{{ column }}</th>
+        <div>
+            <a class="btn btn-danger d-none" id="cancelDelete" href="?table_name={{ table_name }}&page={{ page }}" role="button">Cancel Delete</a>
+        </div>
+        <form id="deleteForm" method="post" action="/delete_rows?table_name={{table_name}}">
+            <table id="example" class="table table-striped" style="width:100%">
+                <thead>
+                    <tr>
+                        {% for column in columns %}
+                        <th>{{ column }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data %}
+                    <tr>
+                        {% for cell in row %}
+                        <td>{{ cell }}</td>
+                        {% endfor %}
+                        <td name="deleteRow" class="d-none"> 
+                            <button name="rowValue" type="submit" class="btn btn-danger" value="{{ row }}">Delete</button>
+                        </td>
+                    </tr>
                     {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in data %}
-                <tr>
-                    {% for cell in row %}
-                    <td>{{ cell }}</td>
-                    {% endfor %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </form>
+        
         <form id="insertForm" method="post" action="/submit_rows?table_name={{table_name}}">
             <table id="insertTable" class="table table-striped d-none" style="width:100%">
                 <thead>
@@ -54,7 +75,29 @@
                         {% endfor %}
                         <td>
                             <button id="submitBtn" type = "submit" class="btn btn-success" >Submit</button>
-                            <button id="cancelBtn" type = "button" class="btn btn-danger" onclick="cancelInsert()">Cancel</button>
+                            <a class="btn btn-danger" href="?table_name={{ table_name }}&page={{ page }}" role="button">Cancel</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </form>
+        <form id="searchForm" method="post" action="/search_rows?table_name={{table_name}}">
+            <table id="searchTable" class="table table-striped d-none" style="width:100%">
+                <thead>
+                    <tr>
+                        {% for column in columns %}
+                        <th>{{ column }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr id="searchRow">
+                        {% for _ in columns %}
+                        <td><input type="text" class="form-control" name="search_values" placeholder="Enter value"></td>
+                        {% endfor %}
+                        <td>
+                            <button id="searchBtn" type = "submit" class="btn btn-success" >Search</button>
+                            <a class="btn btn-danger" href="?table_name={{ table_name }}&page={{ page }}" role="button">Cancel</a>
                         </td>
                     </tr>
                 </tbody>

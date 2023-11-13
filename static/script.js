@@ -1,23 +1,35 @@
 function insertRows() {
-    var insertBtn = document.getElementById('insertBtn');
+    var searchAndInsertButton = document.getElementById('searchAndInsertButton');
     var insertTable = document.getElementById('insertTable');
     insertTable.classList.remove('d-none');
-    insertBtn.classList.add('d-none');
+    searchAndInsertButton.classList.add('d-none');
 }
 
-function cancelInsert() {
-    var insertBtn = document.getElementById('insertBtn');
-    var insertTable = document.getElementById('insertTable');
-
-    insertBtn.classList.remove('d-none');
-    insertTable.classList.add('d-none');
+function searchRows() {
+    var searchAndInsertButton = document.getElementById('searchAndInsertButton');
+    var searchTable = document.getElementById('searchTable');
+    searchTable.classList.remove('d-none');
+    searchAndInsertButton.classList.add('d-none');
 }
 
-function submitRows() {
-    var insertTable = document.getElementById('insertTable');
-    var insertBtn = document.getElementById('insertBtn');
+function deleteRows() {
+    var searchAndInsertButton = document.getElementById('searchAndInsertButton');
+    var cancelDelete = document.getElementById('cancelDelete');
+    var deleteRow = document.getElementsByName('deleteRow');
+    for (var i = 0; i < deleteRow.length; i++) {
+        deleteRow[i].classList.remove('d-none')
+    }
+    searchAndInsertButton.classList.add('d-none');
+    cancelDelete.classList.remove('d-none');
+}
 
-    insertTable.classList.add('d-none');
-    insertBtn.classList.remove('d-none');
-    return true;
+function cancelDelete() {
+    var searchAndInsertButton = document.getElementById('searchAndInsertButton');
+    var cancelDelete = document.getElementById('cancelDelete');
+    var deleteRow = document.getElementsByName('deleteRow');
+    for (var i = 0; i < deleteRow.length; i++) {
+        deleteRow[i].classList.add('d-none')
+    }
+    searchAndInsertButton.classList.remove('d-none');
+    cancelDelete.classList.add('d-none');
 }

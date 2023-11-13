@@ -1,3 +1,4 @@
+import ast
 from flask import Flask, jsonify, render_template, request, redirect, url_for
 import pynuodb
 import logging
@@ -12,32 +13,69 @@ def init_db():
     connection = pynuodb.connect(database='test', host='nuoadmin1', user='dba', password='goalie')
     return connection
 
+
 def get_column_data_types(table_name):
     db_connection = init_db()
     column_data_types = []
     cursor = db_connection.cursor()
     cursor.execute(f"SELECT * FROM imdb.{table_name} FETCH FIRST 1 ROWS ONLY")
     columns = [column[0] for column in cursor.description]
+    logger.debug(f"Columns are : {columns}")
     cursor.execute(f"SELECT * FROM imdb.{table_name} WHERE {' AND '.join(f'{column} IS NOT NULL' for column in columns)} LIMIT 1")
     rowValues = cursor.fetchall()
-    for i in rowValues:
-        column_data_types.append(type(i))
-
+    logger.debug(f"Row values are : {rowValues}")
+    for i in rowValues[0]:
+        if i != '':
+            column_data_types.append(type(i))
+            logger.debug(f"Data type of {i} is {type(i)}")
+        else:
+            column_data_types.append('')
+            
     db_connection.close()
     return column_data_types
 
-
 def convert_to_data_types(column_values, column_data_types):
     converted_values = []
+    logger.debug(f"Values are {column_values}")
     for value, data_type in zip(column_values, column_data_types):
-        if data_type in ('VARCHAR', 'CHAR'):
+        logger.debug(f"Values is {value} and data type is {data_type}")
+        if data_type is str and value != '':
             converted_values.append(str(value))
-        elif data_type in ('INTEGER', 'SMALLINT', 'BIGINT', 'DECIMAL', 'FLOAT', 'DOUBLE'):
+        elif data_type is int and value != '':
             converted_values.append(int(value))
-        elif data_type == 'BOOLEAN':
+        elif data_type is float and value != '':
+            converted_values.append(float(value))
+        elif data_type is bool and value != '':
             converted_values.append(bool(value))
+        elif value is '':
+            converted_values.append('')
 
     return converted_values
+
+def check_emptyInput(column, value):
+    if value == '':
+        return False
+    else:
+        return True
+    
+def build_search_query(table_name, columns, search_values, column_data_types):
+    conditions = []
+
+    for column, value, data_type in zip(columns, search_values, column_data_types):
+        flag = check_emptyInput(column, value)
+        if flag:
+            if data_type is str:
+                conditions.append(f"{column} = '{value}'")
+            elif data_type is int:
+                conditions.append(f"{column} = {value}")
+            elif data_type is float:
+                conditions.append(f"{column} = {value}")
+            elif data_type is bool:
+                conditions.append(f"{column} = {value}")
+
+    where_clause = " AND ".join(conditions)
+    return where_clause
+
 
 @app.route('/')
 def display_tables():
@@ -60,7 +98,6 @@ def display_tables():
 def view_table():
     page_number = int(request.args.get('page', 1))
     page_size = 15
-
     db_connection = init_db()
 
     cursor = db_connection.cursor()
@@ -80,9 +117,6 @@ def submit_rows():
     if request.method == 'POST':
         table_name = request.args["table_name"]
         column_values = request.form.getlist('column_values')
-
-        '''column_data_types = get_column_data_types(table_name)
-        converted_values = convert_to_data_types(column_values, column_data_types)'''
         
         db_connection = init_db()
         cursor = db_connection.cursor()
@@ -92,6 +126,49 @@ def submit_rows():
         
     return redirect(url_for('view_table', table_name=table_name))
     
+@app.route('/search_rows', methods=['GET','POST'])
+def search_rows():
+    if request.method == 'POST':
+        table_name = request.args["table_name"]
+        search_values = request.form.getlist('search_values')
+        column_data_types = get_column_data_types(table_name)
+        converted_values = convert_to_data_types(search_values, column_data_types)
+        
+        db_connection = init_db()
+        cursor = db_connection.cursor()
+        cursor.execute(f"SELECT * FROM imdb.{table_name} FETCH FIRST 1 ROWS ONLY")
+        columns = [column[0] for column in cursor.description]
+        where_clause = build_search_query(table_name, columns, converted_values, column_data_types)
+        query = f"SELECT * FROM imdb.{table_name} WHERE {where_clause}"
+        cursor.execute(query)
+        search_results = cursor.fetchall()
+        db_connection.close()
+        
+    return render_template('search.html', table_name = table_name, data=search_results, columns=columns)
+    
+@app.route('/delete_rows', methods=['GET','POST'])
+def deleteRow():
+    table_name = request.args["table_name"]
+    logger.debug(f"Table = {table_name}")
+    delete_values = ast.literal_eval(request.form.get('rowValue'))
+    logger.debug(f"Row values = {delete_values}")
+    column_data_types = get_column_data_types(table_name)
+    logger.debug(f"Data types are {column_data_types}")
+    converted_values = convert_to_data_types(delete_values, column_data_types)
+    logger.debug(f"Converted values are {converted_values}")
+    
+    db_connection = init_db()
+    cursor = db_connection.cursor()
+    cursor.execute(f"SELECT * FROM imdb.{table_name} FETCH FIRST 1 ROWS ONLY")
+    columns = [column[0] for column in cursor.description]
+    where_clause = build_search_query(table_name, columns, converted_values, column_data_types)
+    logger.debug(f"Delete from {table_name} where {where_clause}")
+    query = f"DELETE FROM imdb.{table_name} WHERE {where_clause}"
+    cursor.execute(query)
+    db_connection.commit()
+    db_connection.close()
+    
+    return redirect(url_for('view_table', table_name=table_name))
     
 if __name__ == '__main__':
     app.run(debug=True)
