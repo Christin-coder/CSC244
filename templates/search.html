@@ -40,6 +40,7 @@
         </div>
         <div>
             <a class="btn btn-danger d-none" id="cancelDelete" onclick="cancelDelete()" role="button">Cancel Delete</a>
+            <a class="btn btn-danger d-none" id="cancelUpdate" href="?table_name={{ table_name }}&page={{ page }}" role="button">Cancel Update</a>
         </div>
         <form id="deleteForm" method="post" action="/delete_rows?table_name={{table_name}}">
             <table id="example" class="table table-striped" style="width:100%">
