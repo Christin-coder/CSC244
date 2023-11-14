@@ -75,7 +75,6 @@ def build_search_query(table_name, columns, search_values, column_data_types):
     where_clause = " AND ".join(conditions)
     return where_clause
 
-
 @app.route('/')
 def display_tables():
     pattern = r'\b[A-Z_]+\b'
@@ -229,6 +228,80 @@ def deleteRow():
         db_connection.close()
     
     return redirect(url_for('view_table', table_name=table_name))
-    
+
+@app.route('/ActorJournal', methods=['GET','POST'])
+def ActorJournal():
+    columns = ['Actor_fname','Actor_lname']
+    all_rows = None
+    Actor_columns = None
+    if request.method == 'POST':
+        actor_data = request.form.getlist('searchActor')
+        Actor_fname, Actor_lname = str(actor_data[0]),str(actor_data[1])
+        logger.debug("actor_data"+str(actor_data))
+        query = f"execute imdb.getActorMovies('{Actor_fname}','{Actor_lname}');"
+        logger.debug("query"+str(query))
+        try:
+            db_connection = init_db()
+            cursor = db_connection.cursor()
+            cursor.execute(query)
+            all_rows = cursor.fetchall()
+            logger.debug("all_rows"+str(all_rows))
+            Actor_columns = [column[0] for column in cursor.description]
+            db_connection.close()
+        except:
+            logger.debug("exception")
+            pass
+        
+    return render_template('ActorJournal.html', columns = columns, Actor_columns = Actor_columns, data = all_rows)
+
+@app.route('/DirectorJournal', methods=['GET','POST'])
+def DirectorJournal():
+    columns = ['Director_fname','Director_lname']
+    all_rows = None
+    Director_columns = None
+    if request.method == 'POST':
+        Director_data = request.form.getlist('searchDirector')
+        Director_fname, Director_lname = str(Director_data[0]),str(Director_data[1])
+        logger.debug("Director_data"+str(Director_data))
+        query = f"execute imdb.getDirectorMovies('{Director_fname}','{Director_lname}');"
+        logger.debug("query"+str(query))
+        try:
+            db_connection = init_db()
+            cursor = db_connection.cursor()
+            cursor.execute(query)
+            all_rows = cursor.fetchall()
+            logger.debug("all_rows"+str(all_rows))
+            Director_columns = [column[0] for column in cursor.description]
+            db_connection.close()
+        except:
+            logger.debug("exception")
+            pass
+        
+    return render_template('DirectorJournal.html', columns = columns, Director_columns = Director_columns, data = all_rows)
+
+@app.route('/MovieJournal', methods=['GET','POST'])
+def MovieJournal():
+    columns = ['Movie_Name','Movie_year']
+    all_rows = None
+    Movie_columns = None
+    if request.method == 'POST':
+        Movie_data = request.form.getlist('searchMovie')
+        Movie_fname, Movie_lname = str(Movie_data[0]),str(Movie_data[1])
+        logger.debug("Movie_data"+str(Movie_data))
+        query = f"execute imdb.getMovieActors('{Movie_fname}','{Movie_lname}');"
+        logger.debug("query"+str(query))
+        try:
+            db_connection = init_db()
+            cursor = db_connection.cursor()
+            cursor.execute(query)
+            all_rows = cursor.fetchall()
+            logger.debug("all_rows"+str(all_rows))
+            Movie_columns = [column[0] for column in cursor.description]
+            db_connection.close()
+        except:
+            logger.debug("exception")
+            pass
+        
+    return render_template('MovieJournal.html', columns = columns, Movie_columns = Movie_columns, data = all_rows)
 if __name__ == '__main__':
     app.run(debug=True)

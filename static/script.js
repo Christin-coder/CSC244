@@ -53,6 +53,7 @@ function cancelDelete() {
     cancelDelete.classList.add('d-none');
 }
 
+<<<<<<< HEAD
 function cancelUpdate() {
     var searchAndInsertButton = document.getElementById('searchAndInsertButton');
     var cancelUpdate = document.getElementById('cancelUpdate');
@@ -63,3 +64,5 @@ function cancelUpdate() {
     searchAndInsertButton.classList.remove('d-none');
     cancelUpdate.classList.add('d-none');
 }
+=======
+>>>>>>> 36aeee0c67ec88027051c60d7706be712dd7e79b
