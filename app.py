@@ -228,7 +228,7 @@ def MovieJournal():
         Movie_data = request.form.getlist('searchMovie')
         Movie_fname, Movie_lname = str(Movie_data[0]),str(Movie_data[1])
         logger.debug("Movie_data"+str(Movie_data))
-        query = f"execute imdb.getMovieMovies('{Movie_fname}','{Movie_lname}');"
+        query = f"execute imdb.getMovieActors('{Movie_fname}','{Movie_lname}');"
         logger.debug("query"+str(query))
         try:
             db_connection = init_db()
