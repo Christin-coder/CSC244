@@ -23,11 +23,10 @@ def get_column_data_types(table_name):
     logger.debug(f"Columns are : {columns}")
     cursor.execute(f"SELECT * FROM imdb.{table_name} WHERE {' AND '.join(f'{column} IS NOT NULL' for column in columns)} LIMIT 1")
     rowValues = cursor.fetchall()
-    logger.debug(f"Row values are : {rowValues}")
     for i in rowValues[0]:
         if i != '':
             column_data_types.append(type(i))
-            logger.debug(f"Data type of {i} is {type(i)}")
+            logger.debug(f"Data type is {type(i)}")
         else:
             column_data_types.append('')
             
@@ -39,15 +38,15 @@ def convert_to_data_types(column_values, column_data_types):
     logger.debug(f"Values are {column_values}")
     for value, data_type in zip(column_values, column_data_types):
         logger.debug(f"Values is {value} and data type is {data_type}")
-        if data_type is str and value != '':
+        if data_type is str and value != '' and value != None:
             converted_values.append(str(value))
-        elif data_type is int and value != '':
+        elif data_type is int and value != '' and value != None:
             converted_values.append(int(value))
-        elif data_type is float and value != '':
+        elif data_type is float and value != '' and value != None:
             converted_values.append(float(value))
-        elif data_type is bool and value != '':
+        elif data_type is bool and value != '' and value != None:
             converted_values.append(bool(value))
-        elif value is '':
+        elif value is '' and value != None:
             converted_values.append('')
 
     return converted_values
@@ -98,8 +97,36 @@ def display_tables():
 def view_table():
     page_number = int(request.args.get('page', 1))
     page_size = 15
+    if(request.args.get('update_values')):
+        logger.debug("update section entered")
+        table_name = request.args["table_name"]
+        logger.debug(f"Table name is {table_name}")
+        updateValue = request.args.get('update_values')
+        logger.debug(f"Update Where clause values = {updateValue}")
+        updateValue = ast.literal_eval(updateValue)
+        column_data_types = get_column_data_types(table_name)
+        converted_values = convert_to_data_types(updateValue, column_data_types)
+        logger.debug(f"Search query values = {converted_values}")
+        
+        db_connection = init_db()
+        cursor = db_connection.cursor()
+        cursor.execute(f"SELECT * FROM imdb.{table_name} FETCH FIRST 1 ROWS ONLY")
+        columns = [column[0] for column in cursor.description]
+        logger.debug(f"Column names {columns}")
+        if table_name in ("DIRECTORS", "ACTORS", "MOVIES"):
+            query = f"SELECT * FROM imdb.{table_name} WHERE ID = {converted_values[0]}"
+            logger.debug(query)
+        else:
+            where_clause = build_search_query(table_name, columns, converted_values, column_data_types)
+            query = f"SELECT * FROM imdb.{table_name} WHERE {where_clause}"
+        cursor.execute(query)
+        search_results = cursor.fetchall()
+        logger.debug(f"Search results are {search_results}")
+        db_connection.close()
+        
+        return render_template('updateTable.html', table_name=table_name, data=search_results, columns=columns)
+    
     db_connection = init_db()
-
     cursor = db_connection.cursor()
     offset = (page_number - 1) * page_size
 
@@ -111,6 +138,38 @@ def view_table():
     db_connection.close() 
 
     return render_template('view_table.html', table_name = table_name, data=all_rows, columns=columns, page=page_number)
+
+@app.route('/update_rows', methods=['GET', 'POST'])
+def update_rows():
+    logger.debug("Entered update_rows section")
+    table_name = request.args["table_name"]
+    if table_name in ("DIRECTORS", "MOVIES", "ACTORS"):
+        logger.debug(f"Table = {table_name}")
+        previousValues = ast.literal_eval(request.args.get('data'))
+        previousValues = previousValues[0]
+        logger.debug(f"Previous Values = {previousValues}")
+        update_values = request.form.getlist('newValueOfRow')
+        logger.debug(f"New Row values = {update_values}")
+        column_data_types = get_column_data_types(table_name)
+        logger.debug(f"Data types are {column_data_types}")
+        converted_values_prev = convert_to_data_types(previousValues, column_data_types)
+        converted_values_new = convert_to_data_types(update_values, column_data_types)
+        logger.debug(f"Converted previous values are {converted_values_prev}")
+        logger.debug(f"Converted values are {converted_values_new}")
+    
+        db_connection = init_db()
+        cursor = db_connection.cursor()
+        cursor.execute(f"SELECT * FROM imdb.{table_name} FETCH FIRST 1 ROWS ONLY")
+        columns = [column[0] for column in cursor.description]
+        set_clause = build_search_query(table_name, columns, converted_values_new, column_data_types)
+        logger.debug(f"UPDATE imdb.{table_name} SET {set_clause} WHERE ID = {converted_values_prev[0]}")
+        query = f"UPDATE imdb.{table_name} SET {set_clause} WHERE ID = {converted_values_prev[0]}"
+        cursor.execute(query)
+        db_connection.commit()
+        db_connection.close
+    
+    return redirect(url_for('view_table', table_name=table_name))
+    
 
 @app.route('/submit_rows', methods=['POST'])
 def submit_rows():
@@ -142,31 +201,32 @@ def search_rows():
         query = f"SELECT * FROM imdb.{table_name} WHERE {where_clause}"
         cursor.execute(query)
         search_results = cursor.fetchall()
+        logger.debug(f"Search row results are {search_results}")
         db_connection.close()
         
     return render_template('search.html', table_name = table_name, data=search_results, columns=columns)
+
+
     
 @app.route('/delete_rows', methods=['GET','POST'])
 def deleteRow():
-    table_name = request.args["table_name"]
-    logger.debug(f"Table = {table_name}")
-    delete_values = ast.literal_eval(request.form.get('rowValue'))
-    logger.debug(f"Row values = {delete_values}")
-    column_data_types = get_column_data_types(table_name)
-    logger.debug(f"Data types are {column_data_types}")
-    converted_values = convert_to_data_types(delete_values, column_data_types)
-    logger.debug(f"Converted values are {converted_values}")
+    if (request.form.get("rowValue")):
+        logger.debug("delete section entered")
+        table_name = request.args["table_name"]
+        delete_values = ast.literal_eval(request.form.get('rowValue'))
+        column_data_types = get_column_data_types(table_name)
+        converted_values = convert_to_data_types(delete_values, column_data_types)
     
-    db_connection = init_db()
-    cursor = db_connection.cursor()
-    cursor.execute(f"SELECT * FROM imdb.{table_name} FETCH FIRST 1 ROWS ONLY")
-    columns = [column[0] for column in cursor.description]
-    where_clause = build_search_query(table_name, columns, converted_values, column_data_types)
-    logger.debug(f"Delete from {table_name} where {where_clause}")
-    query = f"DELETE FROM imdb.{table_name} WHERE {where_clause}"
-    cursor.execute(query)
-    db_connection.commit()
-    db_connection.close()
+        db_connection = init_db()
+        cursor = db_connection.cursor()
+        cursor.execute(f"SELECT * FROM imdb.{table_name} FETCH FIRST 1 ROWS ONLY")
+        columns = [column[0] for column in cursor.description]
+        where_clause = build_search_query(table_name, columns, converted_values, column_data_types)
+        logger.debug(f"Delete from {table_name} where {where_clause}")
+        query = f"DELETE FROM imdb.{table_name} WHERE {where_clause}"
+        cursor.execute(query)
+        db_connection.commit()
+        db_connection.close()
     
     return redirect(url_for('view_table', table_name=table_name))
     

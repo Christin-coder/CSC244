@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>View Table</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    <script defer src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <script defer src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script defer src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script defer src="{{ url_for('static', filename='script.js') }}"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center px-5 py-3">
+            <h1>{{ table_name }} - Update Values</h1>
+            <a class="btn btn-primary" href="/" role="button">Home</a>
+        </div>
+        <div>
+            <table id="searchAndInsertButton" class="table">
+                <tr>
+                    <td>
+                        <button class="btn btn-primary" onclick="location.href='/view_table?table_name={{ table_name }}'">Back</button>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div>
+            <a class="btn btn-danger d-none" id="cancelUpdate" onclick="location.href='/view_table?table_name={{ table_name }}'" role="button">Cancel Update</a>
+        </div>
+        <h4>Update From</h4>
+        <form id="updateForm" method="post" action="/update_rows?table_name={{table_name}}&data={{ data }}">
+            <table id="example" class="table table-striped" style="width:100%">
+                <thead>
+                    <tr>
+                        {% for column in columns %}
+                        <th>{{ column }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data %}
+                    <tr>
+                        {% for cell in row %}
+                        <td>{{ cell }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <h4>Update To</h4>
+            <table id="updateTable" class="table table-striped" style="width:100%">
+                <thead>
+                    <tr>
+                        {% for column in columns %}
+                        <th>{{ column }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr id="newRow">
+                        {% for cell in data[0] %}
+                        <td><input type="text" class="form-control" name="newValueOfRow" placeholder="{{ cell }}"></td>
+                        {% endfor %}
+                        <td name="updateRow">
+                            <button type="submit" class="btn btn-success">Update</button>
+                            <p>{{ row }}</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </form>
+    </div>
+</body>
+</html>
