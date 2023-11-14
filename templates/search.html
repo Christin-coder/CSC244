@@ -24,6 +24,9 @@
                         <button class="btn btn-primary" id="insertBtn" onclick="insertRows()">Insert Rows</button>
                     </td>
                     <td>
+                        <button class="btn btn-primary" id="updateBtn" onclick="updateRows()">Update Row</button>
+                    </td>
+                    <td>
                         <button class="btn btn-primary" id="searchRowBtn" onclick="searchRows()">Search</button>
                     </td>
                     <td>
@@ -53,6 +56,9 @@
                         {% for cell in row %}
                         <td>{{ cell }}</td>
                         {% endfor %}
+                        <td name="updateRow" class="d-none">
+                            <a name="updateValue" class="btn btn-success" href="?table_name={{ table_name }}&update_values={{ row }}">Update</a>
+                        </td>
                         <td name="deleteRow" class="d-none">
                             <button name="rowValue" type="submit" class="btn btn-danger" value="{{ row }}">Delete</button>
                         </td>
