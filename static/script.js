@@ -33,3 +33,4 @@ function cancelDelete() {
     searchAndInsertButton.classList.remove('d-none');
     cancelDelete.classList.add('d-none');
 }
+
